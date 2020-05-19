@@ -1,2 +1,2 @@
-# api-file-upload
- .NET Web API to Upload large file in chunks
+# Introduction
+ This is .NET web API code to upload large files to server App_Data folder in 5MB chunks
