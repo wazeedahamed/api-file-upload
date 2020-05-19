@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload</title>
+    <link href="./css/bootstrap.min.css" rel="stylesheet" />
+</head>
+
+<body>
+    <div class="container">
+        <div class="row">
+            <div class="col-xs-12">
+                <h3>Upload Large File in .NET Web API</h3>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-6 col-md-8 col-sm-10 col-xs-12">
+                <div class="form-group">
+                    <label for="fileupload">File</label>
+                    <input type="file" id="fileupload" onchange="onChangeFile()">
+                    <p for="fileupload" class="help-block">Size: 0.00 KB</p>
+                </div>
+            </div>
+            <div class="col-xs-12">
+                <button class="btn btn-primary" id="fileuploadbutton" type="button" onclick="onUploadFile()"><i
+                        class="glyphicon glyphicon-upload"></i>&nbsp;Upload</button>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-xs-12" style="margin-top: 10px;">
+                <div class="progress">
+                    <div for="fileupload" class="progress-bar progress-bar-striped active" role="progressbar"
+                        aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0% uploaded</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        function onChangeFile() {
+            var fileinput = document.getElementById("fileupload");
+            var file = fileinput.files[0];
+            if (file) {
+                var _size = file.size / 1024;
+                $(".help-block[for=fileupload]").text('Size: ' + _size.toFixed(2) + ' KB');
+            } else {
+                $(".help-block[for=fileupload]").text('Size: 0.00 KB');
+            }
+        }
+
+        function onUploadFile() {
+            var fileinput = document.getElementById("fileupload");
+            var fileuploadbutton = document.getElementById('fileuploadbutton');
+            var file = fileinput.files[0];
+            if (file) {
+                fileinput.disabled = true;
+                fileuploadbutton.disabled = true;
+                _upload(file).then(function (response) {
+                    fileinput.disabled = false;
+                    fileuploadbutton.disabled = false;
+                    alert(response.message);
+                });
+            } else {
+                alert('select a file to upload');
+            }
+        }
+        function _upload(file, chunk, totaluploaded) {
+            chunk = chunk || 0;
+            totaluploaded = totaluploaded || 0;
+            var $deferred = $.Deferred();
+            var chunkSize = 1024 * 1024 * 5; // 5MB chunk
+            var fileSize = file.size;
+            var chunks = Math.ceil(fileSize / chunkSize);
+            var _isChunk = false;
+            var $progress = $('.progress-bar[role=progressbar]');
+            var _totalc = {
+                content: 0 // To update by reference
+            };
+            var contentRange = {
+                start: chunk,
+                end: (chunk + chunkSize) > fileSize ? fileSize : (chunk + chunkSize),
+                total: fileSize
+            }
+            if (fileSize > chunkSize) {
+                _isChunk = true;
+            }
+            var form = new FormData();
+            form.append(file.name, file.slice(contentRange.start, contentRange.end, file.type || 'application/octet-stream'));
+            var request = {
+                type: 'POST',
+                url: 'http://localhost:55622/api/Upload/LargeFile', // URL to upload
+                processData: false,
+                contentType: false,
+                headers: {},
+                data: form,
+                success: function (response) {
+                    if (_isChunk) {
+                        if (contentRange.end == contentRange.total) {
+                            $deferred.resolve(response);
+                            $progress.removeClass('active');
+                        } else {
+                            _upload(file, contentRange.end, _totalc.content).then(function (response) {
+                                $deferred.resolve(response);
+                            });
+                        }
+                    } else {
+                        $deferred.resolve(response);
+                        $progress.removeClass('active');
+                    }
+                },
+                error: function (jqXHR, error, info) {
+                    $deferred.reject(jqXHR, error, info);
+                },
+                xhr: function () {
+                    var xhr = $.ajaxSettings.xhr();
+                    xhr.upload.onprogress = function (e) {
+                        onUploadProgress(e, _totalc, fileSize, totaluploaded)
+                            .then(function (_percent) {
+                                $progress
+                                    .attr('aria-valuenow', _percent)
+                                    .text(_percent + "%")
+                                    .css('width', _percent + "%");
+                            });
+                    }
+                    return xhr;
+                }
+            };
+            if (_isChunk) {
+                request.headers['Content-Disposition'] = 'chunk; filename="' + encodeURI(file.name) + '"';
+                request.headers['Content-Range'] = 'bytes ' + contentRange.start + '-' + contentRange.end + '/' + contentRange.total;
+            } else {
+                request.headers['Content-Disposition'] = 'attachment; filename="' + encodeURI(file.name) + '"';
+            }
+            $progress.addClass('active');
+            $.ajax(request);
+            return $deferred.promise();
+        }
+
+        function onUploadProgress(e, _totalc, fileSize, totaluploaded) {
+            var $deferred = $.Deferred();
+            // Progress bar
+            var _loaded = totaluploaded + e.loaded;
+            var _total = totaluploaded + e.total;
+
+            if (!_totalc.content) _totalc.content = _total; // Call By Reference
+            _total = _total > fileSize ? _total : fileSize;
+
+            var _percent = (_loaded / _total) * 100;
+            _percent = Number(_percent.toFixed(2));
+
+            $deferred.resolve(_percent);
+            return $deferred.promise();
+        }
+    </script>
+    <script src="./js/jquery-3.4.1.min.js"></script>
+</body>
+
+</html>

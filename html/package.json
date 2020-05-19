@@ -1,0 +1,15 @@
+{
+  "name": "largefileupload",
+  "version": "1.0.0",
+  "description": "Sample project to update large file in 5MB chunks with .NET API and jQuery",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "http-server ./content/ -a localhost -p 8080 -d false"
+  },
+  "author": "wazeedahamed@gmail.com",
+  "license": "MIT",
+  "devDependencies": {
+    "http-server": "^0.12.3"
+  }
+}
