@@ -10,7 +10,7 @@ This is . NET web API code to upload a large file to server `App_Data` folder in
 
 Deploy API code in server or Run using Visual Studio or any other IDE of your preference.
 
-Now open command prompt and navigate `html` folder content. Run the below command to install required `node_modules` . This is required to run on first time.
+Now open command prompt and navigate `html` folder content. Run the below command to install required `node_modules`. This is required to run on first time.
 
 > npm install
 
