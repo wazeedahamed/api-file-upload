@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "http-server ./content/ -a localhost -p 8080 -d false"
+    "start": "start http://localhost:8080 && http-server ./content/ -a localhost -p 8080 -d false"
   },
   "author": "wazeedahamed@gmail.com",
   "license": "MIT",
