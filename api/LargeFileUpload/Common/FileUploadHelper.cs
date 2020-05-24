@@ -17,12 +17,16 @@ namespace LargeFileUpload.Common
         public FileUploadHelper(string uploadPath)
         {
             _uploadPath = uploadPath;
-            _streamProvider = new MultipartFormDataStreamProvider(_uploadPath);
+            _streamProvider = new MultipartFormDataStreamProvider(UserLocalPath);
         }
 
         #region Interface
         public async Task<UploadProcessingResult> HandleRequest(HttpRequestMessage request)
         {
+            if(FileExist(request))
+            {
+                throw new Exception("Cannot create file when that file already exists.");
+            }
             try
             {
                 await request.Content.ReadAsMultipartAsync(_streamProvider);
@@ -30,7 +34,7 @@ namespace LargeFileUpload.Common
             catch (Exception ex)
             {
                 File.Delete(LocalFileName);
-                throw;
+                throw ex;
             }
 
             return await ProcessFile(request);
@@ -56,21 +60,20 @@ namespace LargeFileUpload.Common
             //use the unique identifier sent from client to identify the file
             FileChunkMetaData chunkMetaData = request.GetChunkMetaData();
             string partPath = string.Format("{0}.part", OriginalFileName);
-            string filePath = Path.Combine(_uploadPath, partPath);
+            string filePath = Path.Combine(UserLocalPath, partPath);
 
-            await AppendTempFileToFile(LocalFileName, filePath);
+            await AppendChunkFileToFile(LocalFileName, filePath);
 
             if (chunkMetaData.IsLastChunk)
             {
-                string finalPath = Path.Combine(_uploadPath, OriginalFileName);
-                File.Move(filePath, finalPath);
+                File.Move(filePath, FinalFilePath);
             }
 
             return new UploadProcessingResult()
             {
                 IsComplete = chunkMetaData.IsLastChunk,
                 FileName = OriginalFileName,
-                LocalFilePath = chunkMetaData.IsLastChunk ? Path.Combine(_uploadPath, OriginalFileName) : null,
+                LocalFilePath = chunkMetaData.IsLastChunk ? FinalFilePath : null,
                 FileMetadata = _streamProvider.FormData
             };
 
@@ -78,19 +81,18 @@ namespace LargeFileUpload.Common
 
         private async Task<UploadProcessingResult> ProcessFullFile(HttpRequestMessage request)
         {
-            string finalPath = Path.Combine(_uploadPath, OriginalFileName);
-            await AppendTempFileToFile(LocalFileName, finalPath);
+            await AppendChunkFileToFile(LocalFileName, FinalFilePath);
 
             return new UploadProcessingResult()
             {
                 IsComplete = true,
                 FileName = OriginalFileName,
-                LocalFilePath = finalPath,
+                LocalFilePath = FinalFilePath,
                 FileMetadata = _streamProvider.FormData
             };
         }
 
-        private async Task AppendTempFileToFile(string fromPath, string toPath)
+        private async Task AppendChunkFileToFile(string fromPath, string toPath)
         {
             //append chunks to construct original file
             using (FileStream fileStream = new FileStream(toPath, FileMode.Append))
@@ -108,6 +110,27 @@ namespace LargeFileUpload.Common
                 //delete chunk
                 localFileInfo.Delete();
             }
+        }
+        private Boolean FileExist(HttpRequestMessage request)
+        {
+            Boolean check = false;
+            if (request.IsChunkUpload())
+            {
+                FileChunkMetaData chunkMetaData = request.GetChunkMetaData();
+                check = chunkMetaData.IsFirstChunk;
+            }
+            else
+            {
+                check = true;
+            }
+            if(check)
+            {
+                if (File.Exists(Path.Combine(UserLocalPath, request.Content.Headers.ContentDisposition.FileName.Trim('"'))))
+                {
+                    return true;
+                }
+            }
+            return false;
         }
         #endregion
 
@@ -133,6 +156,13 @@ namespace LargeFileUpload.Common
             get
             {
                 return _uploadPath;
+            }
+        }
+        private string FinalFilePath
+        {
+            get
+            {
+                return Path.Combine(UserLocalPath, OriginalFileName);
             }
         }
         #endregion

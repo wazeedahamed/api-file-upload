@@ -78,7 +78,7 @@
                     var _ms = _end - _start;
                     var _sec = _ms / 1000;
                     var _min = _sec / 60;
-                    console.log(`Uploaded in ${_min} minutes (${_sec} seconds or ${_ms} millisecond)`);
+                    console.log("Uploaded in " + _min + " minutes (" + _sec + " seconds or " + _ms + " millisecond)");
                     alert(response.message);
                 });
             } else {
@@ -115,24 +115,28 @@
                 headers: {},
                 data: form,
                 success: function (response) {
-                    if (_isChunk) {
-                        if (contentRange.end == contentRange.total) {
+                    if (response.success) {
+                        if (_isChunk) {
+                            if (contentRange.end == contentRange.total) {
+                                $deferred.resolve(response);
+                                $progress.removeClass('active');
+                            } else {
+                                _upload(file, contentRange.end, _totalc.content).then(function (response) {
+                                    $deferred.resolve(response);
+                                });
+                            }
+                        } else {
                             $deferred.resolve(response);
                             $progress.removeClass('active');
-                        } else {
-                            _upload(file, contentRange.end, _totalc.content).then(function (response) {
-                                $deferred.resolve(response);
-                            });
                         }
                     } else {
                         $deferred.resolve(response);
-                        $progress.removeClass('active');
                     }
                 },
                 error: function (jqXHR, error, info) {
                     $deferred.reject(jqXHR, error, info);
                     alert('Error occured... Check console for more details');
-                    console.error(error, info);
+                    console.error(jqXHR, error, info);
                 },
                 xhr: function () {
                     var xhr = $.ajaxSettings.xhr();
