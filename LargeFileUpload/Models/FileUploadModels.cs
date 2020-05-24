@@ -23,7 +23,7 @@ namespace LargeFileUpload.Models
 
         public bool IsLastChunk
         {
-            get { return ChunkEnd == TotalLength; }
+            get { return (ChunkEnd + 1) == TotalLength; }
         }
     }
 

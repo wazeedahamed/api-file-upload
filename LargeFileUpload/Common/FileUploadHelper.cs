@@ -23,7 +23,16 @@ namespace LargeFileUpload.Common
         #region Interface
         public async Task<UploadProcessingResult> HandleRequest(HttpRequestMessage request)
         {
-            await request.Content.ReadAsMultipartAsync(_streamProvider);
+            try
+            {
+                await request.Content.ReadAsMultipartAsync(_streamProvider);
+            }
+            catch (Exception ex)
+            {
+                File.Delete(LocalFileName);
+                throw;
+            }
+
             return await ProcessFile(request);
         }
         #endregion
@@ -38,7 +47,7 @@ namespace LargeFileUpload.Common
             }
             else
             {
-                return await ProcessFinalFile(request);
+                return await ProcessFullFile(request);
             }
         }
 
@@ -51,30 +60,26 @@ namespace LargeFileUpload.Common
 
             await AppendTempFileToFile(LocalFileName, filePath);
 
+            if (chunkMetaData.IsLastChunk)
+            {
+                string finalPath = Path.Combine(_uploadPath, OriginalFileName);
+                File.Move(filePath, finalPath);
+            }
+
             return new UploadProcessingResult()
             {
                 IsComplete = chunkMetaData.IsLastChunk,
                 FileName = OriginalFileName,
-                LocalFilePath = chunkMetaData.IsLastChunk ? filePath : null,
+                LocalFilePath = chunkMetaData.IsLastChunk ? Path.Combine(_uploadPath, OriginalFileName) : null,
                 FileMetadata = _streamProvider.FormData
             };
 
         }
 
-        private async Task<UploadProcessingResult> ProcessFinalFile(HttpRequestMessage request)
+        private async Task<UploadProcessingResult> ProcessFullFile(HttpRequestMessage request)
         {
-            string partPath = string.Format("{0}.part", OriginalFileName);
-            string filePath = Path.Combine(_uploadPath, partPath);
             string finalPath = Path.Combine(_uploadPath, OriginalFileName);
-            if (request.Content.Headers.ContentDisposition.DispositionType == "chunk")
-            {
-                await AppendTempFileToFile(LocalFileName, filePath);
-                File.Move(filePath, finalPath);
-            }
-            else
-            {
-                await AppendTempFileToFile(LocalFileName, finalPath);
-            }
+            await AppendTempFileToFile(LocalFileName, finalPath);
 
             return new UploadProcessingResult()
             {
