@@ -70,9 +70,15 @@
             if (file) {
                 fileinput.disabled = true;
                 fileuploadbutton.disabled = true;
+                var _start = new Date();
                 _upload(file).then(function (response) {
                     fileinput.disabled = false;
                     fileuploadbutton.disabled = false;
+                    var _end = new Date();
+                    var _ms = _end - _start;
+                    var _sec = _ms / 1000;
+                    var _min = _sec / 60;
+                    console.log(`Uploaded in ${_min} minutes (${_sec} seconds or ${_ms} millisecond)`);
                     alert(response.message);
                 });
             } else {
@@ -144,7 +150,7 @@
             };
             if (_isChunk) {
                 request.headers['Content-Disposition'] = 'chunk; filename="' + encodeURI(file.name) + '"';
-                request.headers['Content-Range'] = 'bytes ' + contentRange.start + '-' + contentRange.end + '/' + contentRange.total;
+                request.headers['Content-Range'] = 'bytes ' + contentRange.start + '-' + (contentRange.end - 1) + '/' + contentRange.total;
             } else {
                 request.headers['Content-Disposition'] = 'attachment; filename="' + encodeURI(file.name) + '"';
             }
