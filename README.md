@@ -3,22 +3,22 @@ This is . NET web API code to upload a large file to server `App_Data` folder in
 
 ## Folder Information
 
-1. `LargeFileUpload` folder holds .NET API code.
-2. `html` folder holds a simple html web application that calls Web API, and sends file in chunks when required.
+1. `api` folder holds .NET API code to process uploaded chunks.
+2. `html` folder holds a simple html web application that calls Web API, and upload file in chunks when required.
 
 ## How to check?
 
 Deploy API code in server or Run using Visual Studio or any other IDE of your preference.
 
-Now open command prompt and navigate `html` folder content. Run the below command to install required `node_modules`. This is required to run on first time.
+Now open command prompt and navigate to `html` folder. Run the below command to install required `node_modules`. This is required to run on first time.
 
 > npm install
 
-Run below command to serve and open web application to upload. This will run predefined script from `package.json` file
+Run below command to serve and open web application for uploading. This will run predefined script from `package.json` file
 
 > npm start
 
-Check the API url on the page. Update below configuration if necessary in `html/content/index.html` page
+Check the API url on the page. Update below configuration if necessary in `html/content/index.html` page.
 
 ``` javascript
 var config = {
